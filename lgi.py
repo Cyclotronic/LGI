@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-LGI - LAN GPIB Inventory
+LGI — LAN GPIB Inventory
 
 A desktop front end for Agilent/Keysight E5810A-class LAN/GPIB gateways.
 Finds gateways on the network, opens a tab per gateway, walks the GPIB bus
@@ -20,6 +20,7 @@ import csv
 import json
 import queue
 import socket
+import sys
 import threading
 import tkinter as tk
 from pathlib import Path
@@ -354,7 +355,7 @@ class DiscoveryTab(QueuedFrame):
             count = args[0]
             self.log.write(f"Search finished: {count} gateway(s) responding.")
             if not count:
-                self.log.write("Nothing answered. Some switches drop directed broadcasts - "
+                self.log.write("Nothing answered. Some switches drop directed broadcasts — "
                                "try the subnet sweep, or add the gateway by address.")
             self.app.set_status(f"{count} gateway(s) responding")
             self.app.refresh_inventory()
@@ -947,7 +948,7 @@ class GatewayTab(QueuedFrame):
         self.console_lid = client.create_link(f"{iface},{addr}")
         self.console_client = client
         self.console_addr = addr
-        self.q.put(("console", f"- link open on {iface},{addr} -"))
+        self.q.put(("console", f"— link open on {iface},{addr} —"))
 
     def close_console_link(self, quiet: bool = False) -> None:
         if self.console_client:
@@ -958,7 +959,7 @@ class GatewayTab(QueuedFrame):
                 pass
             self.console_client.close()
             if not quiet:
-                self.console_out.write("- link closed -")
+                self.console_out.write("— link closed —")
         self.console_client = None
         self.console_lid = None
         self.console_addr = None
@@ -1420,7 +1421,7 @@ class InventoryTab(QueuedFrame):
                 definition.filename, definition.label, definition.handle,
                 definition.port or "not stated"))
         self.defs_label.configure(
-            text=f"Definitions found - {len(self.catalog.usable)} in "
+            text=f"Definitions found — {len(self.catalog.usable)} in "
                  f"{len(self.catalog.directories)} folder(s)")
 
     def fill_links(self) -> None:
@@ -1432,7 +1433,7 @@ class InventoryTab(QueuedFrame):
         for row in self.db.instruments():
             instrument = " ".join(b for b in (row["manufacturer"], row["model"]) if b)
             if row["nickname"]:
-                instrument = f"{row['nickname']} - {instrument}" if instrument else row["nickname"]
+                instrument = f"{row['nickname']} — {instrument}" if instrument else row["nickname"]
             driver = row["tc_filename"] or ""
             if row["tc_confidence"]:
                 match = tc.CONFIDENCE_TEXT.get(row["tc_confidence"], row["tc_confidence"])
@@ -1568,7 +1569,7 @@ class InventoryTab(QueuedFrame):
 class App(tk.Tk):
     def __init__(self, db_path: Path):
         super().__init__()
-        self.title(f"{APP_NAME} - {APP_TITLE} {VERSION}")
+        self.title(f"{APP_NAME} — {APP_TITLE} {VERSION}")
         self.geometry("1280x800")
         self.minsize(980, 600)
         self.db = Database(db_path)
@@ -1720,7 +1721,7 @@ class App(tk.Tk):
     def about(self) -> None:
         messagebox.showinfo(
             f"About {APP_NAME}",
-            f"{APP_NAME} {VERSION} - {APP_TITLE}\n\n"
+            f"{APP_NAME} {VERSION} — {APP_TITLE}\n\n"
             "Finds VXI-11 LAN/GPIB gateways such as the Agilent E5810A, walks the\n"
             "GPIB bus behind each one, and keeps a SQLite record of what was found\n"
             "and when.\n\n"
@@ -1741,12 +1742,57 @@ class App(tk.Tk):
         self.destroy()
 
 
-def main() -> int:
-    parser = argparse.ArgumentParser(description=f"{APP_NAME} - {APP_TITLE}")
+# Subcommands handled by the headless side. A frozen build is a single
+# executable, so the GUI entry point has to hand these straight through or the
+# command line interface becomes unreachable once packaged.
+CLI_COMMANDS = ("discover", "scan", "tc", "list", "export")
+
+
+def first_positional(argv: list[str]) -> str:
+    """The first bare word, skipping options and the values they consume.
+
+    Needed so that `lgi --db bench.sqlite3 scan 10.0.0.5` still recognises
+    "scan", while a database file that happens to be called scan does not
+    masquerade as a subcommand.
+    """
+    takes_value = {"--db"}
+    skip_next = False
+    for arg in argv:
+        if skip_next:
+            skip_next = False
+            continue
+        if arg == "--":
+            continue
+        if arg.startswith("-"):
+            skip_next = arg in takes_value
+            continue
+        return arg
+    return ""
+
+
+def main(argv: Optional[list[str]] = None) -> int:
+    argv = list(sys.argv[1:] if argv is None else argv)
+    if first_positional(argv) in CLI_COMMANDS:
+        import lgi_core
+        return lgi_core.main(argv)
+
+    parser = argparse.ArgumentParser(
+        description=f"{APP_NAME} — {APP_TITLE}",
+        epilog="Run with a subcommand (" + ", ".join(CLI_COMMANDS) +
+               ") for the headless interface; see `--help` after the subcommand.")
     parser.add_argument("--db", default=str(DEFAULT_DB_PATH),
                         help=f"SQLite inventory file (default {DEFAULT_DB_PATH})")
-    args = parser.parse_args()
-    App(Path(args.db)).mainloop()
+    parser.add_argument("--version", action="version", version=f"{APP_NAME} {VERSION}")
+    args = parser.parse_args(argv)
+
+    try:
+        app = App(Path(args.db))
+    except tk.TclError as exc:
+        print(f"{APP_NAME}: no display available ({exc}).\n"
+              f"Use a subcommand for headless work: {', '.join(CLI_COMMANDS)}",
+              file=sys.stderr)
+        return 2
+    app.mainloop()
     return 0
 
 

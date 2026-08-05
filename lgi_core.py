@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-lgi_core - LAN GPIB Inventory: protocol, discovery and database layer.
+lgi_core — LAN GPIB Inventory: protocol, discovery and database layer.
 
 Pure standard library. No pyvisa, no python-vxi11, no external deps.
 
@@ -420,7 +420,7 @@ class GatewayInfo:
 
     def label(self) -> str:
         bits = [b for b in (self.model, self.hostname or self.ip) if b]
-        return " - ".join(bits) if bits else self.ip
+        return " — ".join(bits) if bits else self.ip
 
 
 def local_ipv4_addresses() -> list[str]:
@@ -1237,9 +1237,14 @@ def _cli_export(args) -> int:
 
 def main(argv: Optional[list[str]] = None) -> int:
     p = argparse.ArgumentParser(
-        prog="lgi_core", description=f"{APP_TITLE} {VERSION} - headless interface")
+        prog="lgi_core", description=f"{APP_TITLE} {VERSION} — headless interface")
     p.add_argument("--db", default=str(DEFAULT_DB_PATH), help="SQLite inventory file")
-    sub = p.add_subparsers(dest="cmd", required=True)
+    # Repeat --db on every subcommand so it works either side of it. SUPPRESS
+    # stops the subparser default from overwriting a value given up front.
+    common = argparse.ArgumentParser(add_help=False)
+    common.add_argument("--db", default=argparse.SUPPRESS, help="SQLite inventory file")
+    sub = p.add_subparsers(dest="cmd", required=True, parser_class=(
+        lambda **kw: argparse.ArgumentParser(parents=[common], **kw)))
 
     d = sub.add_parser("discover", help="find VXI-11 / GPIB gateways")
     d.add_argument("--cidr", default=None, help="also sweep this subnet, e.g. 192.168.1.0/24")

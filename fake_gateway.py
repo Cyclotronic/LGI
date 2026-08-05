@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-fake_gateway - a pretend Agilent E5810A on localhost.
+fake_gateway — a pretend Agilent E5810A on localhost.
 
 Serves just enough of the portmapper and the VXI-11 core channel to exercise
 the scanner end to end: discovery, link creation, serial poll, *IDN? and a few

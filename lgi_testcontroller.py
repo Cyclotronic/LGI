@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-lgi_testcontroller - match inventoried instruments to TestController drivers.
+lgi_testcontroller — match inventoried instruments to TestController drivers.
 
 TestController keeps each instrument as a plain text device definition file in
 a Devices folder. The tags that matter here are at the top of every file:
@@ -18,7 +18,7 @@ both came from the instrument itself rather than a guess based on model names.
 
 Where files live:
   * The install folder that holds TestController.jar has the bundled definitions.
-  * Your own definitions go in the working folder TestController creates -
+  * Your own definitions go in the working folder TestController creates —
     Documents\\TestController\\Devices on Windows, ~/TestController/Devices on
     Linux. Either can be given as the base; the scanner searches below it.
 
@@ -102,7 +102,7 @@ def normalize_idn(text: str) -> str:
 
 
 def idn_prefix(idn: str, fields: int = 2) -> str:
-    """The manufacturer and model fields - what #idString is built from."""
+    """The manufacturer and model fields — what #idString is built from."""
     parts = [p.strip() for p in (idn or "").split(",")]
     return ",".join(parts[:fields])
 
@@ -262,7 +262,7 @@ def scan_install(base: str | Path, on_log=None) -> Catalog:
     for name, paths in catalog.collisions:
         log(f"  name collision on {name}: " +
             ", ".join(Path(p).name for p in paths) +
-            " - these are one file on Windows and macOS")
+            " — these are one file on Windows and macOS")
     return catalog
 
 
@@ -302,7 +302,7 @@ def match_instrument(catalog: Catalog, idn: str = "", manufacturer: str = "",
                      model: str = "") -> list[Match]:
     """Rank the definitions that could drive this instrument.
 
-    An #idString hit is authoritative - TestController itself would accept the
+    An #idString hit is authoritative — TestController itself would accept the
     connection. Everything below that is a suggestion for the user to confirm.
     """
     matches: list[Match] = []

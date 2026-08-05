@@ -1,0 +1,90 @@
+name: build
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-22.04        # oldest glibc you intend to support
+            artifact: lgi-linux-x86_64
+          - os: windows-latest
+            artifact: lgi-windows-x86_64
+          - os: macos-13            # Intel
+            artifact: lgi-macos-x86_64
+          - os: macos-14            # Apple Silicon
+            artifact: lgi-macos-arm64
+
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      # setup-python's macOS builds ship Tk 8.6. Do not fall back to the system
+      # python on macOS: it links the ancient Tk 8.5, where ttk widgets render
+      # badly and some dialogs hang.
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Tk (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y python3-tk
+
+      - name: Check Tk is present and modern
+        run: python -c "import tkinter; assert tkinter.TkVersion >= 8.6, tkinter.TkVersion; print('Tk', tkinter.TkVersion)"
+
+      - run: pip install pyinstaller==6.21.0
+
+      - name: Build
+        run: pyinstaller lgi.spec --noconfirm
+
+      # The headless side runs anywhere, so it is the smoke test that works on
+      # every runner without a display.
+      - name: Smoke test (Unix)
+        if: runner.os != 'Windows'
+        run: |
+          ./dist/lgi --version
+          ./dist/lgi --db "${RUNNER_TEMP}/smoke.sqlite3" list
+
+      - name: Smoke test (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          .\dist\lgi-cli.exe --version
+          .\dist\lgi-cli.exe --db "$env:RUNNER_TEMP\smoke.sqlite3" list
+
+      # An ad-hoc signature is the minimum that stops macOS killing the app on
+      # first launch. For anything you hand to another person, replace this with
+      # a Developer ID identity and notarise: without notarisation Gatekeeper
+      # still shows "cannot be opened because the developer cannot be verified".
+      - name: Ad-hoc sign (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          codesign --force --deep --sign - dist/LGI.app
+          codesign --verify --verbose dist/LGI.app
+
+      - name: Package (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          cd dist
+          zip -qry "../${{ matrix.artifact }}.zip" LGI.app lgi
+          cd ..
+
+      - name: Package (Linux)
+        if: runner.os == 'Linux'
+        run: tar -C dist -czf "${{ matrix.artifact }}.tar.gz" lgi
+
+      - name: Package (Windows)
+        if: runner.os == 'Windows'
+        run: Compress-Archive -Path dist\lgi.exe,dist\lgi-cli.exe -DestinationPath "${{ matrix.artifact }}.zip"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: |
+            *.zip
+            *.tar.gz

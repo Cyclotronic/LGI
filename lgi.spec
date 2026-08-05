@@ -19,7 +19,7 @@ from pathlib import Path
 IS_MAC = sys.platform == "darwin"
 IS_WINDOWS = sys.platform == "win32"
 
-VERSION = "1.0.0"
+from lgi_core import VERSION
 NAME = "lgi"
 BUNDLE_NAME = "LGI"
 

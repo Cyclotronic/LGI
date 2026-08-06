@@ -25,12 +25,12 @@ jobs:
 
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4.2.2
 
       # setup-python's macOS builds ship Tk 8.6. Do not fall back to the system
       # python on macOS: it links the ancient Tk 8.5, where ttk widgets render
       # badly and some dialogs hang.
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5.4.0
         with:
           python-version: "3.12"
 
@@ -85,7 +85,7 @@ jobs:
         if: runner.os == 'Windows'
         run: Compress-Archive -Path dist\lgi.exe,dist\lgi-cli.exe -DestinationPath "${{ matrix.artifact }}.zip"
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4.6.1
         with:
           name: ${{ matrix.artifact }}
           path: |
@@ -97,11 +97,11 @@ jobs:
     if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v4.1.9
         with:
           path: artifacts
 
       - name: Create Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v2.2.1
         with:
           files: artifacts/**/*

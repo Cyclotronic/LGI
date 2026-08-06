@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "lgi-inventory"
-version = "1.0.6"
+version = "1.0.7"
 description = "LAN GPIB Inventory - VXI-11 instrument scanner and inventory database with Tkinter GUI"
 readme = "README.md"
 requires-python = ">=3.9"

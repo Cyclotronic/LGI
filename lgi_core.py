@@ -44,7 +44,7 @@ from typing import Callable, Iterable, Optional
 
 APP_NAME = "LGI"
 APP_TITLE = "LAN GPIB Inventory"
-VERSION = "1.0.4"
+VERSION = "1.0.5"
 
 DEFAULT_DB_PATH = Path.home() / ".lgi" / "inventory.sqlite3"
 

@@ -19,6 +19,9 @@ from pathlib import Path
 IS_MAC = sys.platform == "darwin"
 IS_WINDOWS = sys.platform == "win32"
 
+SPECDIR = Path(__file__).resolve().parent if "__file__" in globals() else Path.cwd()
+if str(SPECDIR) not in sys.path:
+    sys.path.insert(0, str(SPECDIR))
 from lgi_core import VERSION
 NAME = "lgi"
 BUNDLE_NAME = "LGI"
